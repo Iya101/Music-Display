@@ -33,14 +33,18 @@ import javafx.scene.control.Label;
 import javafx.animation.Timeline;
 import javafx.animation.Animation;
 import javafx.event.EventHandler;
+import javafx.scene.layout.StackPane;
+import javafx.scene.text.TextAlignment;
+import javafx.geometry.Pos;
+
 /**
- * Represents an iTunes GalleryApp!
+ * Represents an iTunes GalleryApp.
  */
 
 public class GalleryApp extends Application {
 
     TilePane grid = new TilePane();
-    ImageView imgHolder [] = new ImageView[20];
+    ImageView [] imgHolder  = new ImageView[20];
     String [] urlResults;
     String encodedString = "";
     URL url = null;
@@ -57,82 +61,118 @@ public class GalleryApp extends Application {
     Button updateImage;
     boolean play = true;
     double playCount = -1.0;
+    boolean isRunning = false;
+    Stage stage;
 
-
-    /** {@inheritdoc} */
+    /**
+     *This method starts the GUI app.
+     * @param stage of type Stage.
+     */
     @Override
     public void start(Stage stage) {
+        this.stage = stage;
         VBox pane = new VBox();
         pane.getChildren().addAll(menuMaker(), toolBarMaker());
-        getMusicAlbums("Rick Astley"); //?
+        getMusicAlbums("Rick Astley"); //lol get Ricked!
         pane.getChildren().add(imgDisplay());
         pane.getChildren().add(progressBarMethod());
-        // getMusicAlbums("pop");
-
-         // pane.getChildren().add(imgDisplay());
-
-
-
-
-        // Scene scene = new Scene(pane, 640, 480);
-
         Scene scene = new Scene(pane, 500, 485);
-        // stage.setMaxWidth(640);
-        //stage.setMaxHeight(480);
         stage.setTitle("Gallery!");
         stage.setScene(scene);
         stage.sizeToScene();
         stage.show();
     } // start
 
+    /**
+     * This method creates a MenuBar object, while also adding the functionality of the exit
+     * MenuItem.
+     * @return a MenuBar
+     */
+
     public MenuBar menuMaker() {
 
         Menu file = new Menu("File");
+        MenuItem exit = new MenuItem("Exit");
+        exit.setOnAction(e -> {
+            Platform.exit();
+            System.exit(0);
+        });
+        file.getItems().add(exit);
+        Menu help = new Menu("Help");
+
+        MenuItem about = new MenuItem("About");
+
+        // start
+
+        about.setOnAction(e -> {
+            Stage presentMe = new Stage();
+            StackPane root = new StackPane();
+            presentMe.setTitle("About Me");
+            Text aboutText = new Text("About Iyanna Yapo :]");
+            ImageView myPic = new ImageView();
+            Image me = new Image("shorturl.at/dxBH4", 100, 100, false, false);
+            myPic.setImage(me);
+            VBox aboutMeBox = new VBox(10);
+            Text infoText = new Text("About Iyanna Yapo :]");
+            infoText.setText( " Iyanna Yapo \n ihy66481@uga.edu \n Application V 2021");
+            infoText.setTextAlignment(TextAlignment.CENTER);
+            aboutText.setTextAlignment(TextAlignment.CENTER);
+            aboutMeBox.getChildren().addAll(myPic, infoText);
+            root.getChildren().addAll(aboutText, aboutMeBox);
+            StackPane.setAlignment(aboutText, Pos.TOP_CENTER);
+            aboutMeBox.setAlignment(Pos.CENTER);
+
+            Scene aboutMe = new Scene(root, 400, 400);
+
+            presentMe.setScene(aboutMe);
+            presentMe.initOwner(stage);
+            presentMe.initModality(Modality.APPLICATION_MODAL);
+            presentMe.showAndWait();
+        });
+
+        help.getItems().add(about);
 
 
         MenuBar menuBar = new MenuBar();
 
-        menuBar.getMenus().add(file);
+        menuBar.getMenus().addAll(file,help);
 
-        MenuItem exit = new MenuItem("Exit");
 
-        file.getItems().add(exit);
-
-        exit.setOnAction(e ->{
-		Platform.exit();
-		System.exit(0);
-	    });
 
         return menuBar;
 
     } //meNuBar
 
 
+    /**
+     *This method creates a ToolBar object that contains the pause/play button as well as the
+     * the update image button.
+     * @return ToolBar object containing the functional tool bar
+     */
+
 
     public ToolBar toolBarMaker () {
 
-         pause = new Button("Play");
+        pause = new Button("Play");
 
-         Thread task1 = new Thread(() -> {
+        Thread task1 = new Thread(() -> {
 
-             pause.setOnAction(e -> {
+            pause.setOnAction(e -> {
                 imageRotater(); //make this method
-              });
+            });
 
-         });
+        });
 
-         task1.setDaemon(true);
-         task1.start();
+        task1.setDaemon(true);
+        task1.start();
         searchQuery = new Text("Search Query");
 
         searchText = new TextField();
 
-         updateImage = new Button("Update Images");
+        updateImage = new Button("Update Images");
 
         updateImage.setOnAction(e -> {
-
-
-            boolean isRunning = false;
+            // boolean isRunning = false;
             if (timeline != null) {
                 //get status returns the status of the animation
                 if (timeline.getStatus() == Animation.Status.RUNNING) {
@@ -140,85 +180,75 @@ public class GalleryApp extends Application {
                     timeline.pause();
                 }
             }
-
-
             String readUserText = readUserQuery(searchText);
-
-
             progressBar.setProgress(0.0);
-            //run on its own thread
-
-
             Thread task = new Thread(() -> {
                 getMusicAlbums(readUserText);
                 //then go back in and run changes to the scene graph on javafx thread
                 Platform.runLater(() -> {
                     imgDisplay();
                 });
-
             });
+            userInput = readUserQuery(searchText);
 
+            task.setDaemon(true);
+            task.start();
 
-        userInput = readUserQuery(searchText);
-
-        task.setDaemon(true);
-        task.start();
-
-        if (isRunning) {
+            if (isRunning) {
                 timeline.play();
             }
         });
-
         ToolBar mainTool = new ToolBar(pause, searchQuery, searchText, updateImage);
-
         return mainTool;
+    } //toolBar
 
 
-        } //toolBar
+    /**
+     *This method rotates the images, as well as changing the button text to play or pause.
+     */
 
     public void imageRotater () {
 
-         playCount++;
-         /*  //if playCount is even
-        if (playCount % 2 == 0.0) {
-            play = true;
-        } //if playCount is odd
-        if (playCount % 2 != 0.0) {
+        playCount++;
+
+        if (pause.getText().equals("Pause")) {
+
             play = false;
-        }
-         */ //not sure about this
 
-         if(pause.getText().equals("Pause")) {
-
-             play = false;
-
-         } //if
+        } //if
 
 
-         if(pause.getText().equals("Play")) {
+        if (pause.getText().equals("Play")) {
 
-             play = true;
+            play = true;
 
-         } //if
+        } //if
 
 
         Platform.runLater(() -> {
             ////if the animation is playing, change the button text to pause
             if (play) {
                 pause.setText("Pause");
+                isRunning = true;
                 timeline.play();
             } //if the animation is paused, change the button text to play
             if (!play) {
                 pause.setText("Play");
+                isRunning = false;
                 timeline.pause();
                 return;
             }
         });
         if (play) {
-             inPlayMode();
+            inPlayMode();
         }
 
     } //imageRotater
+
+    /**
+     *This method displays the images ultilizing an imageView object.
+     * @return TilePane object that contains the image.
+     */
 
     public TilePane imgDisplay() {
 
@@ -234,16 +264,16 @@ public class GalleryApp extends Application {
 
         int i = 0;
         int counter = 0;
-        while (counter != 20) {
+        while (counter != 20 && i < imgHolder.length) {
 
             System.out.println("Result from url: " + urlResults[i]);
 
             if ( urlResults[i] != null ) {
-            imgHolder[i].setImage(new Image(urlResults[i]));
-            imgHolder[i].setFitWidth(100.0);
-            imgHolder[i].setFitHeight(100.0);
-            grid.getChildren().add(imgHolder[i]);
-            counter++;
+                imgHolder[i].setImage(new Image(urlResults[i]));
+                imgHolder[i].setFitWidth(100.0);
+                imgHolder[i].setFitHeight(100.0);
+                grid.getChildren().add(imgHolder[i]);
+                counter++;
 
             } //if
 
@@ -252,7 +282,7 @@ public class GalleryApp extends Application {
 
         } //while
 
-        //deal with unused url images in here maybe?
+        //deal with unused url images in here.
 
         for ( int x = 0; x < unusedResults.size(); x++ ) {
 
@@ -268,125 +298,143 @@ public class GalleryApp extends Application {
 
     } //imgDisplay
 
+    /**
+     *This method takes in the user query and encodes it using a URL encoder.
+     * @param userInput of type String.
+     */
+
     public void getMusicAlbums (String userInput) {
         grid.setPrefColumns(5);
         grid.setPrefRows(4);
 
-        try{
+        try {
             encodedString =  URLEncoder.encode(userInput,"UTF-8");
-        } catch(java.io.UnsupportedEncodingException e){
+        } catch (java.io.UnsupportedEncodingException e) {
             System.out.println(e.getMessage());
 
         } //catch
 
-        if (encodedString != null){
+        if (encodedString != null) {
 
-            try{
+            try {
                 url = new URL("http://itunes.apple.com/search?term=" + encodedString);
-            }catch(java.net.MalformedURLException e){
+            } catch (java.net.MalformedURLException e) {
                 System.out.println(e.getMessage());
 
-            }//catch
+            }  //catch
 
             InputStreamReader reader = null;
 
             parseURL(url, reader);
 
-            // notEnoughImages(urlResults.length())
+
 
             if (urlResults.length < 21) {
-            Platform.runLater(() -> {
+                Platform.runLater(() -> {
                 //mentioning the error
-                Alert alert = new Alert(Alert.AlertType.ERROR,
+                    Alert alert = new Alert(Alert.AlertType.ERROR,
                         "There are not enough results.",
                         ButtonType.OK);
-                alert.showAndWait();
-                pause.setText("Play");
-            });
-            return;
+                    alert.showAndWait();
+                    pause.setText("Play");
+                });
+                return;
             }
-        } // test
+        }
 
-            //ad something here for
+        int i = 0;
 
-            int i = 0;
+        while ( i < 20 ) {
 
-            while ( i < 20 ) {
+            downLoadAlbumCovers(i);
 
-                downLoadAlbumCovers(i);
-
-                i++;
-
-            } //while
+            // increment progress by 0.05
+            progress = progress + 0.05;
+            progressBar.setProgress(progress);
 
 
+            i++;
 
-        } //getMusicAlbums
-
+        } //while
 
 
 
-        public void parseURL(URL url,InputStreamReader reader){
-
-            try {
-
-              reader = new InputStreamReader(url.openStream());
-
-            } catch (java.io.IOException e) {
-
-             throw new RuntimeException(e.getMessage());
-
-           } //catch
-
-            // JsonParser JsonParser  = new JsonParser();
-
-            JsonElement JsonElement = JsonParser.parseReader(reader);
-
-            JsonObject root = JsonElement.getAsJsonObject();
-
-             jsonResults = root.getAsJsonArray("results"); // array
-
-             System.out.println("LENGTH OF ARRAY: " + jsonResults.size());
-
-             unusedResults = root.getAsJsonArray("results");
-
-             usedResults = new JsonArray();
-
-                  urlResults = new String[jsonResults.size()];
-
-        } //parseURL
-
-        public void downLoadAlbumCovers(int i) {
-
-            JsonObject result = jsonResults.get(i).getAsJsonObject();
-
-            usedResults.add(result);
-
-            JsonElement artworkUrl100 = result.get("artworkUrl100"); //artworkurl
-
-            if (artworkUrl100 != null) {
+    } //getMusicAlbums
 
 
-                String artUrl =  artworkUrl100.getAsString();
 
-                Image image = new Image(artUrl);
+          /**
+           *This method parses the URL.
+           * @param url of type URL that contains the encoded URL.
+           * @param reader of type InputStreamReader.
+           */
 
-                urlResults[i] = artUrl;
+    public void parseURL(URL url,InputStreamReader reader) {
 
-                imgHolder[i] = new ImageView();
+        try {
 
-                imgHolder[i].setImage(image);
-                //maybe this works :]
+            reader = new InputStreamReader(url.openStream());
 
-                //increment progress here ?
+        } catch (java.io.IOException e) {
 
-                Platform.runLater(() -> incrementProgress());
-            } //if
-        } //downLoadAlbumCovers
+            throw new RuntimeException(e.getMessage());
 
+        } //catch
+
+
+
+        JsonElement JsonElement = JsonParser.parseReader(reader);
+
+        JsonObject root = JsonElement.getAsJsonObject();
+
+        jsonResults = root.getAsJsonArray("results"); // array
+
+        System.out.println("LENGTH OF ARRAY: " + jsonResults.size());
+
+        unusedResults = root.getAsJsonArray("results");
+
+        usedResults = new JsonArray();
+
+        urlResults = new String[jsonResults.size()];
+
+    } //parseURL
+
+           /**
+            * This method downloads the album covers using the Json.
+            * @param i of type int
+            */
+
+    public void downLoadAlbumCovers(int i) {
+
+        JsonObject result = jsonResults.get(i).getAsJsonObject();
+
+        usedResults.add(result);
+
+        JsonElement artworkUrl100 = result.get("artworkUrl100"); //artworkurl
+
+        if (artworkUrl100 != null) {
+
+
+            String artUrl =  artworkUrl100.getAsString();
+
+            Image image = new Image(artUrl);
+
+            urlResults[i] = artUrl;
+
+            imgHolder[i] = new ImageView();
+
+            imgHolder[i].setImage(image);
+
+        } //if
+    } //downLoadAlbumCovers
+
+        /**
+         *This method sets the layout up for the progress bar.
+         * @return an HBox containing the progress bar.
+         */
 
     public HBox progressBarMethod() {
-       HBox  hBox = new HBox();
+        HBox  hBox = new HBox();
         progressBar.setLayoutX(25.0);
         progressBar.setLayoutY(500.0);
         Label label = new Label("Images courtesy of  iTunes API");
@@ -394,34 +442,35 @@ public class GalleryApp extends Application {
         return hBox;
     } // progressBarMethod
 
-    public void incrementProgress() {
-        // increment progress by 0.05
-        progress = progress + 0.05;
-        progressBar.setProgress(progress);
-    } //incrementProgress
-
+       /**
+        *This method reads the user query and properly formats it to be read by the iTunes API.
+        * @param textField of type  TextField
+        * @return String containg user query.
+        */
     public String readUserQuery ( TextField textField ) {
 
         userInput = textField.getText();
 
         String [] wordsArray = userInput.split(" ");
 
-         userInput = "";
+        userInput = "";
 
-          for (int i = 0; i < wordsArray.length; i++) {
+        for (int i = 0; i < wordsArray.length; i++) {
             if (i == 0) {
                 userInput = userInput + wordsArray[i];
                 continue;
             }
             userInput = userInput + "+" + wordsArray[i];
         }
-          // progressBar = 0.0; //do I need this here?
-
         return userInput;
 
 
     } //readUserQuery
 
+      /**
+       * This method creates the TimeLine object in order to set the number of cycles.
+       * @param handler of type EventHandler ActionEvent.
+       */
 
     public void createTimeline(EventHandler<ActionEvent> handler) {
         KeyFrame keyFrame = new KeyFrame(Duration.seconds(2), handler);
@@ -433,9 +482,14 @@ public class GalleryApp extends Application {
         //Plays Animation from current position in the direction indicated by rate.
         //If the Animation is running, it has no effect.
         timeline.play();
-    }
+    } //createTimeline
 
-     public void inPlayMode() {
+      /**
+       * This method runs every time the appilcation is in play mode.
+       * It converts the artworkUrl100 to a string and passes it to the {@code imgReplacement}.
+       */
+
+    public void inPlayMode() {
         EventHandler<ActionEvent> handler = (e -> {
             if (jsonResults.size() > 21) {
 
@@ -463,6 +517,12 @@ public class GalleryApp extends Application {
         });
         createTimeline(handler);
     }
+
+    /**
+     *This method replaces the images randomly within the tile pane object.
+     * @param  artworkUrl100 of type JsonElement that holds the artwork URL.
+     * @param   CurrentAlbumCover of type int.
+     */
 
     public void imgReplacement(JsonElement artworkUrl100, int CurrentAlbumCover) {
 
