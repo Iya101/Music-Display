@@ -60,7 +60,6 @@ public class GalleryApp extends Application {
     TextField searchText;
     Button updateImage;
     boolean play = true;
-    double playCount = -1.0;
     boolean isRunning = false;
     Stage stage;
 
@@ -209,7 +208,6 @@ public class GalleryApp extends Application {
 
     public void imageRotater () {
 
-        playCount++;
 
         if (pause.getText().equals("Pause")) {
 
